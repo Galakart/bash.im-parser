@@ -26,7 +26,7 @@ class Parser:
         cursor = self.db.cursor()
         cursor.execute(
             "CREATE TABLE IF NOT EXISTS quotes "
-            "(id INTEGER, text TEXT, datetime INTEGER)"
+            "(id INTEGER, text TEXT, vote INTEGER, datetime INTEGER)"
         )
         self.db.commit()
 
@@ -49,7 +49,7 @@ class Parser:
         html = self.fetch_page(page_number)
         soup = BeautifulSoup(html, "lxml")
         quote_divs = soup.find_all("div", class_="quote__frame")
-        for quote_div in quote_divs:
+        for quote_div in reversed(quote_divs):
             quote = {}
 
             text_div = quote_div.find("div", class_="quote__body")
@@ -72,6 +72,9 @@ class Parser:
 
             date_div = quote_div.find("div", class_="quote__header_date")
             quote["datetime"] = date_div.contents[0].strip()
+            
+            vote_div = quote_div.find("div", class_="quote__total")
+            quote["vote"] = vote_div.contents[0].strip()
 
             id_a = quote_div.find("a", class_="quote__header_permalink")
             quote["id"] = id_a.contents[0].strip()[1:]
@@ -98,8 +101,8 @@ class Parser:
         timestamp = (dt - datetime.datetime(1970, 1, 1)).total_seconds()
 
         cursor.execute(
-            "INSERT INTO quotes (id, text, datetime) VALUES (?,?,?)",
-            (quote["id"], quote["text"], timestamp)
+            "INSERT INTO quotes (id, text, vote, datetime) VALUES (?,?,?,?)",
+            (quote["id"], quote["text"], quote["vote"], timestamp)
         )
 
         self.db.commit()
